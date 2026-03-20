@@ -29,7 +29,7 @@ function App() {
   const [triggers, setTriggers] = useState<Trigger[]>([])
   const [apiStatus, setApiStatus] = useState<string>('Checking...')
 
-  const BACKEND_URL = 'http://localhost:8000'
+  const BACKEND_URL = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://dropsafe-qimn.onrender.com'
 
   useEffect(() => {
     // Check Health
