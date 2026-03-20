@@ -9,11 +9,11 @@ app = FastAPI(title="DropSafe", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[],
+    allow_origins=[
+        "https://dropsafe-ashy.vercel.app",
+    ],
     allow_origin_regex=r"^http://localhost:\d+$",
-    # Vite sometimes picks a different localhost port; allow any dev port.
-    # (Regex support keeps Phase 1 simple without hardcoding ports.)
-    # Note: `allow_origin_regex` doesn’t support wildcard strings.
+    # Allow localhost dev ports and production Vercel domain
     allow_headers=["*"],
     allow_methods=["*"],
     allow_credentials=False,
