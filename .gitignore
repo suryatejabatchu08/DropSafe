@@ -1,58 +1,514 @@
-# Python
+# ============================================================================
+# DropSafe .gitignore
+# AI-Powered Parametric Income Insurance Platform
+# ============================================================================
+#
+# SECURITY FIRST: This file prevents sensitive data, build artifacts,
+# and unnecessary files from being accidentally committed to git.
+#
+# ⚠️ CRITICAL RULES:
+# 1. NEVER commit .env files (only .env.example)
+# 2. NEVER commit API keys, tokens, or credentials
+# 3. NEVER commit personal backup files or databases
+# 4. ALWAYS keep .env.example (it's the template with no secrets)
+# 5. ALWAYS keep supabase/*.sql migration files (infrastructure as code)
+#
+# ============================================================================
+
+# ============================================================================
+# SECTION 1: ENVIRONMENT & SECRETS (CRITICAL!)
+# ============================================================================
+# These contain API keys, database passwords, and authentication tokens
+# If you accidentally commit these, IMMEDIATELY rotate all keys!
+
+# Environment configuration files (local development)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.development
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Cryptographic keys and certificates (VERY SENSITIVE)
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cert
+*.cer
+*.der
+*.keystore
+*.jks
+
+# Credential directories
+secrets/
+.secrets/
+credentials/
+certs/
+keys/
+
+# Cloud provider credentials
+gcloud-service-key.json
+aws_credentials.ini
+azure_credentials.json
+
+# API key files (additional safety layer)
+razorpay_keys.txt
+twilio_keys.txt
+supabase_keys.txt
+weatherapi_keys.txt
+iqair_keys.txt
+secrets.txt
+credentials.json
+private_key.json
+access_tokens.txt
+
+# ============================================================================
+# SECTION 2: PYTHON & BACKEND (FastAPI + Uvicorn)
+# ============================================================================
+
+# Python cache and compiled files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.pyo
+*.pyd
+
+# Distribution and packaging
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-/lib/
+lib/
 lib64/
 parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# Virtual Environment
-.env
-.venv
-env/
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Django/Flask stuff (if applicable)
+instance/
+.webassets-cache
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Virtual environments (use .venv, venv, or env)
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# Node.js
+# mypy type checker
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Backend databases
+backend/database.sqlite
+backend/database.db
+backend/*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# SECTION 3: NODE.JS & FRONTEND (React + TypeScript + Vite)
+# ============================================================================
+
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
-pnpm-debug.log
+.pnp
+.pnp.js
+/.pnp/
 
-# Frontend build
+# Testing
+/coverage
+.nyc_output/
+jest_cache/
+test-results/
+
+# Production build artifacts
+/build
+/dist
 frontend/dist/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
+frontend/dist-ssr/
+dist-ssr/
+*.local
 
-# IDEs and Editors
-.idea/
+# Vite cache
+.vite/
+.vitestrc
+vite.config.*.js
+
+# Development logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pnpm-error.log*
+lerna-debug.log*
+
+# Frontend build outputs
+/frontend/dist/
+/frontend/.next/
+/frontend/out/
+/frontend/.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# ============================================================================
+# SECTION 4: SUPABASE & DATABASE
+# ============================================================================
+# Keep SQL migration files! They're infrastructure as code.
+
+# Supabase CLI directory (temporary)
+.supabase/
+supabase/.temp/
+
+# Backup and temporary database files
+supabase/seed_backup.sql
+supabase/migrations_backup/
+supabase/*.bak
+*.sql.bak
+
+# Never ignore these (keep them committed):
+# ✓ supabase/schema.sql
+# ✓ supabase/migration_*.sql
+# ✓ supabase/seed.sql
+# ✓ supabase/rls.sql
+# ✓ supabase/add_*.sql
+
+# ============================================================================
+# SECTION 5: IDE & EDITOR CONFIGURATION (developer-specific)
+# ============================================================================
+
+# Visual Studio Code
 .vscode/
+.vscode_extensions/
+.vscode_settings.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+!.idea/runConfigurations
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
 *.swp
 *.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# VS
+.vs/
+.vscode/
+.vscode_extensions
+
+# Eclipse
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# Web Storm
+.webstorm
+
+# Android Studio
+out/
+.gradle/
+
+# Visual Studio
+.vs/
+
+# ============================================================================
+# SECTION 6: OPERATING SYSTEM FILES
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.apdisk
+.com.apple.timemachine.supported
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.byebug_history
+
+# ============================================================================
+# SECTION 7: MACHINE LEARNING & DATA FILES
+# ============================================================================
+
+# Model files
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.npy
+*.npz
+models/trained/
+models/*.pt
+models/*.pth
+models/*.onnx
+
+# Data files
+/data/raw/
+/data/processed/
+*.csv
+!**/data/sample.csv  # Keep sample data for testing
+
+# ============================================================================
+# SECTION 8: BUILD & COMPILATION ARTIFACTS
+# ============================================================================
+
+dist/
+build/
+*.bundle.js
+*.min.js
+*.min.css
+.next/
+out/
+.turbo/
+
+# ============================================================================
+# SECTION 9: TEMPORARY & CACHE FILES
+# ============================================================================
+
+.cache/
+.temp/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
 .DS_Store
 
-# Logs
-*.log
+# npm
+.npm/
 
-# OS
-Thumbs.db
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# pnpm
+.pnpm-debug.log
+
+# ============================================================================
+# SECTION 10: LOGGING & DEBUG
+# ============================================================================
+
+*.log
+logs/
+debug/
+*.out
+
+# Application logs
+backend/logs/
+frontend/logs/
+
+# ============================================================================
+# SECTION 11: DOCUMENTATION (Internal dev notes, NOT final docs)
+# ============================================================================
+#
+# Rule: Only commit README.md and SECURITY_GUIDE.md
+# Ignore: Implementation notes, progress tracking, testing guides
+#
+# This prevents cluttering the repository with temporary documentation
+# while keeping essential project documentation.
+
+# Implementation & Development Guides (Internal - DO NOT COMMIT)
+PHASE_2_AUDIT_REPORT.md
+PROGRESS_TRACKER.md
+TESTING_QUICK_GUIDE.md
+TESTING_STEPS_7_8.md
+VERIFICATION_REPORT.md
+PREMIUM_AND_TRIGGERS.md
+STEP_7_8_IMPLEMENTATION.md
+WHATSAPP_IMPLEMENTATION.md
+WHATSAPP_QUICK_REFERENCE.md
+WHATSAPP_SETUP.md
+SUPABASE_SETUP.md
+SERVICE_ROLE_MIGRATION.md
+IMPLEMENTATION_NOTES.md
+DEBUGGING_GUIDE.md
+API_ENDPOINTS.md
+LOCAL_SETUP_GUIDE.md
+DEPLOYMENT_GUIDE.md
+WORKER_SETUP.md
+.claude/
+.claude/memory/
+.claude/plans/
+
+# Temporary markdown files
+*.md.bak
+*.md.tmp
+*.md.swp
+notes.md
+temp_notes.md
+scratch.md
+
+# Keep these essential docs (committed):
+# ✓ README.md
+# ✓ SECURITY_GUIDE.md
+# ✓ frontend/README.md
+# ✓ backend/README.md
+
+# ============================================================================
+# SECTION 12: TEST & DEBUG FILES
+# ============================================================================
+
+test_*.py
+test-*.js
+test-results/
+.coverage/
+
+# ============================================================================
+# SECTION 13: DEPLOYMENT & INFRASTRUCTURE
+# ============================================================================
+
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+infra/.env
+docker-compose.override.yml
+.docker
+kubernetes_secrets.yaml
+
+# ============================================================================
+# SECTION 14: NGROK & LOCAL TUNNELING
+# ============================================================================
+
+.ngrok*
+ngrok.yml
+ngrok.log
+*.ngrok.io
+
+# ============================================================================
+# SECTION 15: MISCELLANEOUS
+# ============================================================================
+
+# Package manager lock files (Usually COMMITTED, use if preferred not to)
+# Uncomment if your team doesn't commit lock files:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Config files (often contains local overrides)
+.prettierrc.local
+.eslintignore.local
+.prettierignore.local
+
+# ============================================================================
+# FINAL SECURITY NOTES
+# ============================================================================
+#
+# 1. If you accidentally commit .env:
+#    - Run: git rm --cached .env
+#    - Run: git commit -m 'Remove .env'
+#    - ROTATE all credentials immediately
+#
+# 2. To verify nothing sensitive is committing:
+#    - Run: git status
+#    - Look for any .env, *.key, secrets files
+#    - If you see any, add them to .gitignore and rotate credentials
+#
+# 3. For already-committed secrets:
+#    - Use: git filter-branch (complex)
+#    - Recommended: Use GitHub's secret scanning feature
+#    - Rotate all exposed credentials immediately
+#
+# ============================================================================

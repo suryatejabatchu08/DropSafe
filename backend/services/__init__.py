@@ -1,0 +1,3 @@
+"""
+DropSafe services package
+"""
