@@ -1,7 +1,6 @@
 """
 DropSafe Trigger Monitor
 Checks all 6 parametric triggers across zones every 15 minutes
-Includes caching for API responses to optimize performance
 """
 
 import os
@@ -13,7 +12,6 @@ from database import get_supabase
 from dotenv import load_dotenv
 import pytz
 from .claim_engine import ClaimEngine
-from utils.cache_service import cached, CacheTTL
 
 load_dotenv()
 
@@ -29,68 +27,6 @@ TRIGGER_AQI = "aqi"
 TRIGGER_CURFEW = "curfew"
 TRIGGER_ORDER_VOLUME = "order_collapse"  # Fixed: matches schema
 TRIGGER_STORE_CLOSURE = "store_closure"
-
-
-# ============================================================================
-# CACHED API CALLS (with 10-minute cache)
-# ============================================================================
-
-
-@cached("weather:current", ttl=CacheTTL.MEDIUM)
-async def get_weather_data(lat: float, lon: float) -> Optional[Dict]:
-    """
-    Fetch weather data for a location (cached 10 minutes)
-
-    Returns: {'temp_c', 'precip_mm', 'aqi_us'} or None
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "http://api.weatherapi.com/v1/current.json",
-                params={"key": WEATHER_API_KEY, "q": f"{lat},{lon}", "aqi": "yes"},
-                timeout=5.0,
-            )
-            response.raise_for_status()
-
-        data = response.json()
-        current = data.get("current", {})
-
-        return {
-            "temp_c": current.get("temp_c", 0.0),
-            "precip_mm": current.get("precip_mm", 0.0),
-            "wind_kph": current.get("wind_kph", 0.0),
-            "humidity": current.get("humidity", 0.0),
-        }
-    except Exception as e:
-        print(f"  [WARNING] WeatherAPI error: {e}")
-        return None
-
-
-@cached("aqi:current", ttl=CacheTTL.MEDIUM)
-async def get_aqi_data(lat: float, lon: float) -> Optional[Dict]:
-    """
-    Fetch AQI data for a location (cached 10 minutes)
-
-    Returns: {'aqi_us': int} or None
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.waqi.info/feed",
-                params={"lat": lat, "lon": lon, "token": IQAIR_API_KEY},
-                timeout=5.0,
-            )
-            response.raise_for_status()
-
-        data = response.json()
-        if data.get("status") == "ok":
-            aqi = data.get("data", {}).get("aqi")
-            return {"aqi_us": aqi} if aqi else None
-
-        return None
-    except Exception as e:
-        print(f"  [WARNING] AQI API error: {e}")
-        return None
 
 
 class TriggerMonitor:
@@ -207,7 +143,7 @@ class TriggerMonitor:
         """
         Trigger 1: Heavy Rainfall (≥50mm).
 
-        Checks current precipitation via WeatherAPI (caches responses).
+        Checks current precipitation via WeatherAPI.
 
         Args:
             zone: Zone data
@@ -222,11 +158,21 @@ class TriggerMonitor:
             if not lat or not lon:
                 return False
 
-            weather_data = await get_weather_data(lat, lon)
-            if not weather_data:
-                return False
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "http://api.weatherapi.com/v1/current.json",
+                    params={
+                        "key": WEATHER_API_KEY,
+                        "q": f"{lat},{lon}",
+                        "aqi": "yes"
+                    },
+                    timeout=5.0
+                )
+                response.raise_for_status()
 
-            precip_mm = weather_data.get("precip_mm", 0.0)
+            data = response.json()
+            current = data.get("current", {})
+            precip_mm = current.get("precip_mm", 0.0)
 
             if precip_mm >= 50:
                 severity = min(precip_mm / 100, 1.0)
@@ -249,7 +195,7 @@ class TriggerMonitor:
         """
         Trigger 2: Extreme Heat (≥43°C).
 
-        Checks current temperature via WeatherAPI (caches responses).
+        Checks current temperature via WeatherAPI.
 
         Args:
             zone: Zone data
@@ -264,11 +210,20 @@ class TriggerMonitor:
             if not lat or not lon:
                 return False
 
-            weather_data = await get_weather_data(lat, lon)
-            if not weather_data:
-                return False
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "http://api.weatherapi.com/v1/current.json",
+                    params={
+                        "key": WEATHER_API_KEY,
+                        "q": f"{lat},{lon}"
+                    },
+                    timeout=5.0
+                )
+                response.raise_for_status()
 
-            temp_c = weather_data.get("temp_c", 0.0)
+            data = response.json()
+            current = data.get("current", {})
+            temp_c = current.get("temp_c", 0.0)
 
             if temp_c >= 43:
                 severity = min((temp_c - 43) / 10, 1.0)

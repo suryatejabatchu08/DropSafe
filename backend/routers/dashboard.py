@@ -2,26 +2,22 @@
 DropSafe Dashboard Router
 
 Endpoints for insurer dashboard to fetch key metrics and analytics.
-Includes comprehensive caching for performance optimization.
 """
 
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
 from database import get_supabase
 import pytz
-from utils.cache_manager import CacheManager, CacheKeys, PerformanceMetrics
-import time
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 IST = pytz.timezone("Asia/Kolkata")
-cache_manager = CacheManager()
 
 
 @router.get("/stats")
 async def get_dashboard_stats():
     """
-    Get top-level dashboard statistics with caching.
+    Get top-level dashboard statistics.
 
     Returns:
         {
@@ -31,16 +27,6 @@ async def get_dashboard_stats():
             "fraud_alerts": int
         }
     """
-    start_time = time.time()
-
-    # Try cache first (TTL: 30 seconds - frequent updates)
-    cached_stats = cache_manager.get(CacheKeys.DASHBOARD_STATS)
-    if cached_stats is not None:
-        PerformanceMetrics.record_api_call(
-            "/dashboard/stats", (time.time() - start_time) * 1000, cached=True
-        )
-        return cached_stats
-
     try:
         supabase = get_supabase()
 
@@ -106,12 +92,6 @@ async def get_dashboard_stats():
             "fraud_alerts": fraud_alerts,
         }
 
-        # Cache for 30 seconds (frequent updates)
-        cache_manager.set(CacheKeys.DASHBOARD_STATS, result, ttl=30)
-
-        PerformanceMetrics.record_api_call(
-            "/dashboard/stats", (time.time() - start_time) * 1000
-        )
         return result
 
     except Exception as e:
@@ -270,17 +250,3 @@ async def get_zones_summary():
     except Exception as e:
         print(f"[ERROR] Failed to fetch zones summary: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch summary")
-
-
-@router.get("/performance")
-async def get_performance_report():
-    """
-    Get performance metrics and cache statistics.
-
-    Useful for monitoring and optimization.
-    Returns cache hit/miss rates and endpoint timings.
-    """
-    return {
-        "cache": cache_manager.get_stats(),
-        "performance": PerformanceMetrics.get_report(),
-    }
