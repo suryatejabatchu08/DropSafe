@@ -723,3 +723,75 @@ async def handle_dispute(worker: dict):
             "Something went wrong. 😟\n\n"
             "Please try again in a moment or contact support."
         )
+
+
+async def handle_status_check(worker: dict):
+    """
+    Handle worker checking their current coverage status.
+
+    Shows active policy details and pending claims.
+    """
+    try:
+        supabase = get_supabase()
+        worker_id = worker["id"]
+
+        # Get current week active policy
+        week_start = get_week_start()
+        week_end = week_start + timedelta(days=7)
+
+        policy_response = (
+            supabase.table("policies")
+            .select("*, zones(dark_store_name, platform)")
+            .eq("worker_id", worker_id)
+            .eq("status", "active")
+            .gte("week_start", week_start.strftime("%Y-%m-%d"))
+            .lte("week_end", week_end.strftime("%Y-%m-%d"))
+            .execute()
+        )
+
+        if not policy_response.data:
+            return (
+                "🔴 No active coverage this week.\n\n"
+                "Reply YES on Monday to activate coverage.\n\n"
+                "Next check-in: Monday 7:00 AM IST"
+            )
+
+        policy = policy_response.data[0]
+        zone = policy.get("zones", {})
+        premium = policy.get("premium_paid", 0)
+        coverage_cap = policy.get("coverage_cap", 0)
+
+        # Get claims this week
+        claims_response = (
+            supabase.table("claims")
+            .select("status")
+            .eq("worker_id", worker_id)
+            .gte("created_at", week_start.isoformat())
+            .execute()
+        )
+
+        claims = claims_response.data or []
+        pending = sum(1 for c in claims if c.get("status") in ["review", "auto_approved"])
+        rejected = sum(1 for c in claims if c.get("status") == "rejected")
+
+        # Build response
+        status_msg = (
+            f"✅ *Coverage Active*\n\n"
+            f"Zone: {zone.get('dark_store_name', 'N/A')}\n"
+            f"Premium: ₹{premium:.0f}\n"
+            f"Coverage Cap: ₹{coverage_cap:.0f}\n\n"
+        )
+
+        if claims:
+            status_msg += f"📋 Claims: {len(claims)}\n"
+            if pending:
+                status_msg += f"⏳ Pending: {pending}\n"
+            if rejected:
+                status_msg += f"❌ Rejected: {rejected}"
+
+        return status_msg
+
+    except Exception as e:
+        print(f"[ERROR] Status check failed: {e}")
+        return "Unable to fetch coverage details. Try again soon."
+
