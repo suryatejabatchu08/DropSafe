@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getDashboardStats, getActiveTriggers } from "../lib/api";
-import { formatTime, getTriggerEmoji } from "../lib/utils";
+import { getDashboardStats, getActiveTriggers } from "@/lib/api";
+import { formatTime, getTriggerEmoji } from "@/lib/utils";
 
 interface Stats {
   active_policies: number;

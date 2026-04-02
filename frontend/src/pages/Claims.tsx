@@ -4,14 +4,14 @@ import {
   getFraudAlerts,
   approveClaim,
   rejectClaim,
-} from "../lib/api";
+} from "@/lib/api";
 import {
   formatINR,
   formatTime,
   getTriggerEmoji,
   getFraudScoreColor,
   anonymizeWorker,
-} from "../lib/utils";
+} from "@/lib/utils";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
 // Loading skeleton

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getZonesSummary } from "../lib/api";
-import { formatINR } from "../lib/utils";
+import { getZonesSummary } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
 interface Zone {
   id: string;
