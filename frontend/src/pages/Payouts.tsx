@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getPayoutSummary, retryPayout } from "@/lib/api";
-import { formatINR } from "@/lib/utils";
+import { getPayoutSummary, retryPayout } from "../lib/api";
+import { formatINR } from "../lib/utils";
 import { AlertTriangle, Loader } from "lucide-react";
 
 // Loading skeleton

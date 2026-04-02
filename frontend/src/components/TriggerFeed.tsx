@@ -5,8 +5,8 @@ import {
   getTriggerColor,
   formatTime,
   getSeverityColor,
-} from "@/lib/utils";
-import api from "@/lib/api";
+} from "../lib/utils";
+import api from "../lib/api";
 
 interface Trigger {
   id: string;
