@@ -394,6 +394,7 @@ async def handle_opt_in(worker: dict):
                 premium_amount=premium,
                 zone_name=zone_name,
                 coverage_cap=coverage_cap,
+                policy_id=policy_id,
             )
             payment_link_url = payment_link_data["short_url"]
             payment_link_id = payment_link_data["link_id"]
@@ -524,6 +525,7 @@ async def handle_awaiting_payment(worker: dict, message: str):
                 premium_amount=premium,
                 zone_name=zone_name,
                 coverage_cap=coverage_cap,
+                policy_id=policy_id,
             )
 
             new_payment_link = payment_link_data["short_url"]

@@ -46,6 +46,7 @@ async def create_payment_link(
     premium_amount: float,
     zone_name: str,
     coverage_cap: float,
+    policy_id: str,
 ) -> dict:
     """
     Create a Razorpay Payment Link for premium collection.
@@ -56,6 +57,7 @@ async def create_payment_link(
         premium_amount: Premium to be paid (in INR)
         zone_name: Zone name
         coverage_cap: Coverage cap for the policy
+        policy_id: Policy UUID (used for unique reference_id)
 
     Returns:
         {
@@ -80,7 +82,7 @@ async def create_payment_link(
                 "currency": "INR",
                 "accept_partial": False,
                 "expire_by": expire_timestamp,
-                "reference_id": f"DROPSAFE_PREMIUM_{worker_id[:8]}",
+                "reference_id": f"DROPSAFE_PREMIUM_{policy_id[:8]}",
                 "description": f"DropSafe Weekly Coverage — {zone_name}",
                 "customer": {"name": worker_name, "contact": ""},  # No phone stored
                 "notify": {
