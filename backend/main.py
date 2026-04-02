@@ -61,7 +61,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://dropsafe-ashy.vercel.app",
+        "https://dropsafe-sable.vercel.app",
     ],
     allow_origin_regex=r"^http://localhost:\d+$",
     # Allow localhost dev ports and production Vercel domain
