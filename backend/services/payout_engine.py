@@ -97,7 +97,7 @@ class PayoutEngine:
             upi_id_encrypted = worker.get("upi_id_encrypted")
 
             payout_amount = float(claim.get("payout_amount", 0))
-            zone_id = claim.get("zone_id")
+            zone_id = policy.get("zone_id")  # Get zone_id from policy, not claim
 
             if not worker_id or not upi_id_encrypted or payout_amount <= 0:
                 print(f"[PayoutEngine] Missing worker data for claim {claim_id}")
@@ -158,7 +158,7 @@ class PayoutEngine:
                 # In test mode, create a mock payout record for demo purposes
                 print(f"[⚠️] Falling back to mock payout for testing")
                 razorpay_ref = f"mock_{claim_id[:8]}"
-                payout_status = "mock_test"
+                payout_status = "initiated"  # Use valid status for mock
 
             # Step 4: Save payout record to database (store IST time)
             now_ist = datetime.now(IST)
@@ -167,7 +167,6 @@ class PayoutEngine:
             payout_data = {
                 "claim_id": claim_id,
                 "worker_id": worker_id,
-                "zone_id": zone_id,
                 "amount": float(payout_amount),
                 "channel": "upi",
                 "razorpay_ref": razorpay_ref,

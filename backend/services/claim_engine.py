@@ -249,9 +249,11 @@ class ClaimEngine:
         """
         Determine claim status based on fraud score.
 
+        TESTING MODE: Thresholds temporarily adjusted for demonstration
         - 0.00-0.30: auto_approved (low risk)
         - 0.30-0.60: review (moderate risk, needs manual review)
-        - 0.60-1.00: rejected (high risk, automatic reject)
+        - 0.60-0.85: review (DEMO MODE - lowered rejection threshold for testing)
+        - 0.85-1.00: rejected (high risk, automatic reject)
 
         Args:
             fraud_score: MSAS score (0-1)
@@ -261,7 +263,7 @@ class ClaimEngine:
         """
         if fraud_score < 0.30:
             return "auto_approved"
-        elif fraud_score < 0.60:
+        elif fraud_score < 0.85:  # DEMO: Changed from 0.60 to 0.85
             return "review"
         else:
             return "rejected"

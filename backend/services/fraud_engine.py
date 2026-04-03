@@ -46,6 +46,11 @@ class FraudEngine:
         try:
             supabase = get_supabase()
 
+            # Debug header
+            trigger_type = claim_data.get("trigger_type", "unknown")
+            print(f"\n[FraudEngine] Scoring {trigger_type} trigger claim for worker {claim_data.get('worker_id', 'unknown')[:8]}...")
+            print(f"   Running 7 fraud detection checks:\n")
+
             # RULE 1: GPS Zone Check (+0.40)
             gps_check = await FraudEngine._check_gps_zone(
                 supabase, claim_data.get("worker_id"), claim_data.get("zone_id")
@@ -54,8 +59,10 @@ class FraudEngine:
             if not gps_check["passed"]:
                 msas_score += gps_check["weight"]
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ GPS Zone Check FAILED: {gps_check['reason']} (+{gps_check['weight']})")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ GPS Zone Check PASSED: {gps_check['reason']}")
 
             # RULE 2: Shift Timing Check (+0.35)
             timing_check = await FraudEngine._check_shift_timing(
@@ -68,8 +75,10 @@ class FraudEngine:
             if not timing_check["passed"]:
                 msas_score += timing_check["weight"]
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ Shift Timing Check FAILED: {timing_check['reason']} (+{timing_check['weight']})")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ Shift Timing Check PASSED: {timing_check['reason']}")
 
             # RULE 3: Duplicate Claim Check (+1.00) - Hard Reject
             dup_check = await FraudEngine._check_duplicate_claim(
@@ -81,8 +90,10 @@ class FraudEngine:
             if not dup_check["passed"]:
                 msas_score += dup_check["weight"]  # Auto-reject at 1.0
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ Duplicate Claim Check FAILED: {dup_check['reason']} (+{dup_check['weight']})")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ Duplicate Claim Check PASSED: {dup_check['reason']}")
 
             # RULE 4: Order Volume Contradiction (+0.30)
             if claim_data.get("trigger_type") == "order_collapse":
@@ -96,8 +107,10 @@ class FraudEngine:
                 if not ovc_check["passed"]:
                     msas_score += ovc_check["weight"]
                     fraud_flags["checks_failed"] += 1
+                    print(f"   ❌ Order Volume Check FAILED: {ovc_check['reason']} (+{ovc_check['weight']})")
                 else:
                     fraud_flags["checks_passed"] += 1
+                    print(f"   ✅ Order Volume Check PASSED: {ovc_check['reason']}")
 
             # RULE 5: Platform Activity Check (+0.25)
             activity_check = await FraudEngine._check_platform_activity(
@@ -110,8 +123,10 @@ class FraudEngine:
             if not activity_check["passed"]:
                 msas_score += activity_check["weight"]
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ Platform Activity Check FAILED: {activity_check['reason']} (+{activity_check['weight']})")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ Platform Activity Check PASSED: {activity_check['reason']}")
 
             # RULE 6: New Worker Check (+0.15)
             new_worker_check = await FraudEngine._check_new_worker(
@@ -121,8 +136,10 @@ class FraudEngine:
             if not new_worker_check["passed"]:
                 msas_score += new_worker_check["weight"]
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ New Worker Check FAILED: {new_worker_check['reason']} (+{new_worker_check['weight']})")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ New Worker Check PASSED: {new_worker_check['reason']}")
 
             # CLUSTER FRAUD DETECTION: Check zone-wide fraud pattern
             cluster_check = await FraudEngine._check_cluster_fraud(
@@ -133,17 +150,31 @@ class FraudEngine:
                 # Cluster fraud increases score (multiplier effect)
                 msas_score = min(msas_score + 0.20, 1.0)
                 fraud_flags["checks_failed"] += 1
+                print(f"   ❌ Cluster Fraud Check FAILED: {cluster_check['reason']} (+0.20)")
             else:
                 fraud_flags["checks_passed"] += 1
+                print(f"   ✅ Cluster Fraud Check PASSED: {cluster_check['reason']}")
 
             # Cap at 1.0
             msas_score = min(msas_score, 1.0)
 
+            # Determine claim status based on fraud score (NORMAL THRESHOLDS)
+            if msas_score < 0.40:
+                status = "auto_approved"
+                status_emoji = "✅"
+            elif msas_score < 0.80:
+                status = "review"
+                status_emoji = "🔍"
+            else:
+                status = "rejected"
+                status_emoji = "❌"
+
             print(
-                f"[FraudEngine] MSAS Score: {msas_score:.2f} | "
+                f"\n   Final MSAS Score: {msas_score:.2f} | "
                 f"Passed: {fraud_flags['checks_passed']} | "
                 f"Failed: {fraud_flags['checks_failed']}"
             )
+            print(f"   {status_emoji} CLAIM STATUS: {status.upper()}\n")
 
             return round(msas_score, 2), fraud_flags
 
