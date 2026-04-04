@@ -625,7 +625,7 @@ payouts (
 | GitHub Repository | *https://github.com/suryatejabatchu08/DropSafe* |
 | Phase 1 Demo Video | *[(Video Link)](https://drive.google.com/file/d/1h--XvtSimhIa20UUThbPofc50ECXa_ti/view?usp=sharing)* |
 | Live Demo | *[(Video Link)](https://drive.google.com/file/d/1QX85zdgNBbO17QnEg98elpCGtYE4USwf/view?usp=sharing)* |
-| Insurer Dashboard | *[Link](https://dropsafe-ashy.vercel.app/)* |
+| Insurer Dashboard | *[Link](https://dropsafe-sable.vercel.app/)* |
 
 ---
 
