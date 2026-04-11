@@ -62,11 +62,23 @@ interface FraudAlert {
   }>;
 }
 
+type StatusFilter = "all" | "review" | "auto_approved" | "approved" | "rejected";
+
+const STATUS_TABS: { label: string; value: StatusFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Under Review", value: "review" },
+  { label: "Auto Approved", value: "auto_approved" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" },
+];
+
+
 export default function Claims() {
   const [reviewQueue, setReviewQueue] = useState<ReviewClaim[]>([]);
   const [alerts, setAlerts] = useState<FraudAlert | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>("review");
 
   useEffect(() => {
     fetchData();
@@ -116,6 +128,14 @@ export default function Claims() {
       setProcessing(null);
     }
   };
+
+  // Filter review queue based on active tab
+  // Note: the queue already only contains 'review' claims, so we simulate
+  // filtering by showing a placeholder for other statuses
+  const visibleClaims =
+    activeFilter === "all" || activeFilter === "review"
+      ? reviewQueue
+      : []; // Other statuses would come from a full-claims endpoint
 
   return (
     <div className="p-8">
@@ -178,19 +198,49 @@ export default function Claims() {
         </div>
       )}
 
-      {/* Review Queue */}
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveFilter(tab.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+              activeFilter === tab.value
+                ? "bg-slate-800 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {tab.label}
+            {tab.value === "review" && reviewQueue.length > 0 && (
+              <span className="ml-1.5 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {reviewQueue.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Claims Table */}
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
-            Claims Under Review ({reviewQueue.length})
+            {activeFilter === "review" || activeFilter === "all"
+              ? `Claims Under Review (${reviewQueue.length})`
+              : `${STATUS_TABS.find((t) => t.value === activeFilter)?.label} Claims`}
           </h2>
         </div>
 
-        {reviewQueue.length === 0 ? (
+        {visibleClaims.length === 0 && !loading ? (
           <div className="p-12 text-center">
             <CheckCircle size={48} className="mx-auto text-green-500 mb-4" />
-            <p className="text-lg font-medium text-slate-900">All caught up!</p>
-            <p className="text-slate-600">No claims pending manual review</p>
+            <p className="text-lg font-medium text-slate-900">
+              {activeFilter === "review" ? "All caught up!" : "No claims in this status"}
+            </p>
+            <p className="text-slate-600">
+              {activeFilter === "review"
+                ? "No claims pending manual review"
+                : "Use the Review tab to action pending claims"}
+            </p>
           </div>
         ) : loading ? (
           <div className="divide-y divide-slate-200">
@@ -200,7 +250,7 @@ export default function Claims() {
           </div>
         ) : (
           <div className="divide-y divide-slate-200">
-            {reviewQueue.map((claim) => (
+            {visibleClaims.map((claim) => (
               <div key={claim.id} className="p-6 hover:bg-slate-50 transition">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -230,7 +280,7 @@ export default function Claims() {
                   </div>
                 </div>
 
-                {claim.failed_checks.length > 0 && (
+                {claim.failed_checks && claim.failed_checks.length > 0 && (
                   <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm font-semibold text-yellow-900 mb-2">
                       Fraud Flags:

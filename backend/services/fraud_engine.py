@@ -24,9 +24,10 @@ class FraudEngine:
         1. GPS Zone Check (+0.40): Worker location mismatches trigger zone
         2. Shift Timing Check (+0.35): Trigger outside typical working hours
         3. Duplicate Claim Check (+1.00): Already claimed for this trigger (hard reject)
-        4. Order Volume Contradiction (+0.30): OVC trigger but high platform activity
-        5. Platform Activity Check (+0.25): No app activity during disruption
-        6. New Worker Check (+0.15): Worker registered <7 days ago
+        4. Frequency Check (+0.30): Worker filed >8 claims in last 30 days
+        5. Order Volume Contradiction (+0.30): OVC trigger but high platform activity
+        6. Platform Activity Check (+0.25): No/high app activity during disruption window
+        7. New Worker Check (+0.15): Worker registered <7 days ago
 
         Returns MSA Score (0.0-1.0) and detailed fraud flags.
 
@@ -95,7 +96,20 @@ class FraudEngine:
                 fraud_flags["checks_passed"] += 1
                 print(f"   ✅ Duplicate Claim Check PASSED: {dup_check['reason']}")
 
-            # RULE 4: Order Volume Contradiction (+0.30)
+            # RULE 4: Claim Frequency Check (+0.30)
+            freq_check = await FraudEngine._check_claim_frequency(
+                supabase, claim_data.get("worker_id")
+            )
+            fraud_flags["details"].append(freq_check)
+            if not freq_check["passed"]:
+                msas_score += freq_check["weight"]
+                fraud_flags["checks_failed"] += 1
+                print(f"   ❌ Frequency Check FAILED: {freq_check['reason']} (+{freq_check['weight']})")
+            else:
+                fraud_flags["checks_passed"] += 1
+                print(f"   ✅ Frequency Check PASSED: {freq_check['reason']}")
+
+            # RULE 5: Order Volume Contradiction (+0.30)
             if claim_data.get("trigger_type") == "order_collapse":
                 ovc_check = await FraudEngine._check_order_volume_contradiction(
                     supabase,
@@ -335,11 +349,52 @@ class FraudEngine:
             }
 
     @staticmethod
+    async def _check_claim_frequency(supabase, worker_id: str) -> dict:
+        """
+        CHECK 4: Claim Frequency Verification (+0.30)
+        Flag workers who have filed more than 8 claims in the last 30 days.
+
+        Returns:
+            Dict with {passed: bool, weight: float, reason: str}
+        """
+        try:
+            thirty_days_ago = (datetime.now(IST) - timedelta(days=30)).replace(
+                tzinfo=None
+            ).isoformat()
+
+            result = (
+                supabase.table("claims")
+                .select("id", count="exact")
+                .eq("worker_id", worker_id)
+                .gte("created_at", thirty_days_ago)
+                .execute()
+            )
+
+            count = result.count or 0
+            passed = count <= 8
+
+            return {
+                "name": "frequency_check",
+                "passed": passed,
+                "weight": 0.30 if not passed else 0.0,
+                "reason": f"{count} claims in last 30 days {'✓' if passed else '✗ too frequent (>8)'}",
+            }
+
+        except Exception as e:
+            print(f"[WARNING] Frequency check error: {e}")
+            return {
+                "name": "frequency_check",
+                "passed": True,
+                "weight": 0.0,
+                "reason": f"Check skipped (error: {str(e)[:30]})",
+            }
+
+    @staticmethod
     async def _check_order_volume_contradiction(
         supabase, worker_id: str, trigger_start: str, trigger_end: str
     ) -> dict:
         """
-        CHECK 4: Order Volume Contradiction
+        CHECK 5: Order Volume Contradiction
         If OVC trigger fired, but worker shows high delivery activity, flag.
         Context: OVC claims when orders collapsed but worker still delivered.
 
@@ -376,7 +431,7 @@ class FraudEngine:
         supabase, worker_id: str, trigger_start: str, trigger_end: str
     ) -> dict:
         """
-        CHECK 5: Platform Activity During Disruption
+        CHECK 6: Platform Activity During Disruption
         Worker should show NO app activity during disruption window.
         If they have activity, they may have worked elsewhere = fraud risk.
 
@@ -410,7 +465,7 @@ class FraudEngine:
     @staticmethod
     async def _check_new_worker(supabase, worker_id: str) -> dict:
         """
-        CHECK 6: New Worker Verification
+        CHECK 7: New Worker Verification
         Workers registered <7 days are slightly higher risk.
 
         Returns:

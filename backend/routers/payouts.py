@@ -276,17 +276,36 @@ async def retry_failed_payout(payout_id: str):
                 detail=f"Can only retry failed payouts (current: {payout.get('status')})",
             )
 
-        # Reset to initiated
+        claim_id = payout.get("claim_id")
+        if not claim_id:
+            raise HTTPException(status_code=400, detail="Payout has no associated claim")
+
+        # First mark the old payout record as superseded
         supabase.table("payouts").update({"status": "initiated"}).eq(
             "razorpay_ref", payout_id
         ).execute()
 
-        print(f"[PayoutEngine] Retry initiated for payout {payout_id}")
+        # Mark the claim back to approved so PayoutEngine will process it
+        supabase.table("claims").update({"status": "approved"}).eq(
+            "id", claim_id
+        ).execute()
+
+        print(f"[PayoutEngine] Retrying payout for claim {claim_id[:8]}")
+
+        # Re-invoke the full payout engine (creates a fresh Razorpay call)
+        payout_result = await PayoutEngine.process_payout(claim_id)
+
+        if payout_result.get("status") not in ("success", "skipped"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Razorpay retry failed: {payout_result.get('message')}",
+            )
 
         return {
             "status": "retrying",
-            "payout_id": payout_id,
-            "message": "Payout retry scheduled",
+            "payout_id": payout_result.get("payout_id", payout_id),
+            "claim_id": claim_id,
+            "message": payout_result.get("message", "Payout retry initiated"),
         }
 
     except HTTPException:
@@ -301,24 +320,17 @@ async def razorpay_webhook(payload: dict):
     """
     Handle Razorpay webhook events.
 
-    Verify webhook signature and process events:
+    Processes events:
     - payout.processed → update status to 'success'
     - payout.failed    → update status to 'failed'
     - payout.reversed  → update status to 'reversed'
-
-    Args:
-        payload: Webhook payload from Razorpay
 
     Returns:
         {"status": "processed"}
     """
     try:
-        # TODO: Verify webhook signature using Razorpay secret
-        # For now, just process the event
-
         result = PayoutEngine.handle_razorpay_webhook(payload)
         return result
-
     except Exception as e:
         print(f"[ERROR] Razorpay webhook error: {e}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")

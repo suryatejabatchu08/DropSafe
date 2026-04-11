@@ -204,8 +204,87 @@ class ClaimEngine:
                 f"[ClaimEngine] Created {claims_created} claims for {trigger_type} in {zone_name}\n"
             )
 
+            # CLUSTER FRAUD FREEZE: After all claims processed, check if >30%
+            # of claims for this trigger are flagged. If so, freeze auto-approved
+            # payouts by moving them to review (prevents coordinated fraud payouts).
+            if claims_created > 0:
+                await ClaimEngine._freeze_cluster_fraud_payouts(
+                    supabase, trigger_event_id, zone_name, trigger_type
+                )
+
         except Exception as e:
             print(f"[ERROR] ClaimEngine.process_trigger failed: {e}")
+
+    @staticmethod
+    async def _freeze_cluster_fraud_payouts(
+        supabase, trigger_event_id: str, zone_name: str, trigger_type: str
+    ):
+        """
+        CLUSTER FRAUD FREEZE
+        After all claims are created for a trigger, check the overall fraud rate.
+        If >30% of claims are flagged (review/rejected), move all auto_approved
+        claims for this trigger to 'review' — preventing any payout from going out
+        until a human investigator clears the batch.
+
+        Args:
+            supabase: Supabase client
+            trigger_event_id: Trigger event UUID
+            zone_name: Zone name (for logging)
+            trigger_type: Trigger type (for logging)
+        """
+        try:
+            # Get all claims for this trigger
+            all_claims_resp = (
+                supabase.table("claims")
+                .select("id, status")
+                .eq("trigger_event_id", trigger_event_id)
+                .execute()
+            )
+
+            if not all_claims_resp.data:
+                return
+
+            all_claims = all_claims_resp.data
+            total = len(all_claims)
+            flagged = sum(
+                1 for c in all_claims if c.get("status") in ("review", "rejected")
+            )
+            fraud_rate = (flagged / total) * 100 if total > 0 else 0.0
+
+            print(
+                f"[ClaimEngine] Cluster fraud check: {flagged}/{total} flagged "
+                f"({fraud_rate:.1f}%) for trigger {trigger_event_id[:8]} in {zone_name}"
+            )
+
+            if fraud_rate > 30.0:
+                # Freeze: move all auto_approved claims for this trigger to 'review'
+                auto_approved_ids = [
+                    c["id"]
+                    for c in all_claims
+                    if c.get("status") == "auto_approved"
+                ]
+
+                if auto_approved_ids:
+                    now_ist_no_tz = datetime.now(IST).replace(tzinfo=None)
+                    supabase.table("claims").update(
+                        {
+                            "status": "review",
+                            "rejection_reason": (
+                                f"⚠️ CLUSTER FRAUD FREEZE: {fraud_rate:.0f}% of zone claims flagged. "
+                                f"Manual review required."
+                            ),
+                            "updated_at": now_ist_no_tz.isoformat(),
+                        }
+                    ).in_("id", auto_approved_ids).execute()
+
+                    print(
+                        f"[ClaimEngine] ⚠️  CLUSTER FRAUD DETECTED in {zone_name} "
+                        f"({trigger_type}): {fraud_rate:.0f}% fraud rate. "
+                        f"Froze {len(auto_approved_ids)} auto-approved claims → review."
+                    )
+
+        except Exception as e:
+            print(f"[WARNING] Cluster fraud freeze check failed: {e}")
 
     @staticmethod
     def calculate_disrupted_hours(trigger: dict, worker_declared_hours: int) -> float:

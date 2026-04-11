@@ -191,8 +191,7 @@ async def handle_onboarding(
         if not zones_response.data:
             return (
                 f"Sorry, we don't have coverage in {pincode} yet. 😔\n\n"
-                f"We're expanding fast! DM us your PIN code and we'll notify "
-                f"you when we launch there."
+                f"Please try a different PIN code or contact us."
             )
 
         zone = zones_response.data[0]

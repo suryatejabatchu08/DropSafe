@@ -147,34 +147,13 @@ def delete_complete_user(phone_number: str):
         print(f"   ✅ Payouts: {deleted_payouts}")
         print(f"   ✅ Fraud Detection Records: {deleted_fraud_records}")
 
-        # Step 4: Find and delete any worker payments/transactions
-        print("\n[4/6] Checking for payments/transactions...")
-        try:
-            # Try to find any other related records
-            payments_response = supabase.table("payments").select("*").eq(
-                "worker_id", worker_id
-            ).execute()
-
-            payments = payments_response.data or []
-            if payments:
-                print(f"   Found {len(payments)} payment record(s)")
-                for payment in payments:
-                    supabase.table("payments").delete().eq(
-                        "id", payment["id"]
-                    ).execute()
-                print(f"   ✅ Deleted {len(payments)} payment(s)")
-            else:
-                print("   No payment records found")
-        except Exception as e:
-            print(f"   ⚠️  Could not check payments: {str(e)}")
-
-        # Step 5: Delete worker document
-        print("\n[5/6] Deleting worker record...")
+        # Step 4: Delete worker document
+        print("\n[4/5] Deleting worker record...")
         supabase.table("workers").delete().eq("id", worker_id).execute()
         print(f"   ✅ Worker record deleted")
 
-        # Step 6: Verify deletion
-        print("\n[6/6] Verifying deletion...")
+        # Step 5: Verify deletion
+        print("\n[5/5] Verifying deletion...")
         verify_response = supabase.table("workers").select("*").eq(
             "phone_hash", phone_hash
         ).execute()

@@ -166,11 +166,11 @@ def _calculate_adjustment_from_forecast(data: dict) -> float:
             adjustment = 1.02
 
         # Temperature risk (apply if higher)
-        if max_temp > 43:  # Extreme heat
-            temp_adjustment = 1.20
+        if max_temp > 45:  # Extreme heat
+            temp_adjustment = 1.25
             adjustment = max(adjustment, temp_adjustment)
-        elif max_temp > 40:  # High heat
-            temp_adjustment = 1.12
+        elif max_temp > 40:  # High heat (spec: >40°C → 1.20)
+            temp_adjustment = 1.20
             adjustment = max(adjustment, temp_adjustment)
 
         # Low risk scenario
@@ -219,18 +219,18 @@ def calculate_coverage_cap(
     """
     Calculate maximum coverage amount per week.
 
-    Cap = (hourly_income × hours) × zone_risk × 0.80
+    Cap = avg_hourly_income × declared_hours × 0.80
+    (zone_risk is accepted for backwards compatibility but not applied to cap)
 
     Args:
         declared_hours: Weekly working hours
         avg_hourly_income: Average hourly income in INR
-        zone_risk: Zone risk multiplier
+        zone_risk: Unused — kept for backwards compatibility
 
     Returns:
         Coverage cap in INR (rounded to 2 decimals)
     """
-    weekly_income = declared_hours * avg_hourly_income
-    cap = weekly_income * zone_risk * 0.80
+    cap = declared_hours * avg_hourly_income * 0.80
 
     return round(cap, 2)
 

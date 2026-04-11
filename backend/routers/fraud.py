@@ -5,6 +5,7 @@ from datetime import datetime
 from database import get_supabase
 import pytz
 from services.payout_engine import PayoutEngine
+from utils.whatsapp_helpers import send_whatsapp_message
 
 router = APIRouter(prefix="/fraud", tags=["fraud"])
 
@@ -255,6 +256,34 @@ async def reject_claim(claim_id: str, request: ClaimRejectionRequest):
         print(
             f"[FRAUD] Claim {claim_id[:8]} manually rejected | Reason: {request.reason}"
         )
+
+        # Notify worker via WhatsApp about the rejection
+        try:
+            worker_resp = (
+                supabase.table("claims")
+                .select("policies(workers(encrypted_phone, name))")
+                .eq("id", claim_id)
+                .execute()
+            )
+            if worker_resp.data:
+                worker = (
+                    worker_resp.data[0]
+                    .get("policies", {})
+                    .get("workers", {})
+                )
+                phone = worker.get("encrypted_phone")
+                name = worker.get("name", "there")
+                if phone:
+                    send_whatsapp_message(
+                        phone,
+                        f"❌ *Claim Rejected*\n\n"
+                        f"Hi {name}, your claim has been manually reviewed "
+                        f"and unfortunately could not be approved.\n\n"
+                        f"📝 *Reason*: {request.reason}\n\n"
+                        f"Reply *DISPUTE* within 24 hours to challenge this decision.",
+                    )
+        except Exception as notify_err:
+            print(f"[WARNING] Failed to notify worker of rejection: {notify_err}")
 
         return {
             "status": "success",

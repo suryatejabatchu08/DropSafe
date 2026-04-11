@@ -159,18 +159,18 @@ def calculate_coverage_cap(
     """
     Calculate maximum coverage amount for a policy.
 
-    Typically: weekly_expected_income × zone_risk × 1.2 (buffer)
+    Formula: avg_hourly_income × declared_hours × 0.80
+    (zone_risk kept for signature compatibility, not applied)
 
     Args:
-        zone_risk: Zone risk multiplier
+        zone_risk: Unused — kept for signature compatibility
         declared_hours: Weekly working hours
         avg_hourly_income: Average hourly income (INR)
 
     Returns:
         Coverage cap in INR
     """
-    weekly_expected_income = declared_hours * avg_hourly_income
-    coverage_cap = weekly_expected_income * zone_risk * 1.2
+    coverage_cap = declared_hours * avg_hourly_income * 0.80
     return round(coverage_cap, 2)
 
 

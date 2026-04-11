@@ -35,7 +35,8 @@ export async function getActiveTriggers() {
 
 export async function getDailyClaimsSummary() {
   try {
-    const response = await api.get("/claims/daily-summary");
+    // Route is at /dashboard/claims/daily-summary (dashboard router prefix)
+    const response = await api.get("/dashboard/claims/daily-summary");
     return response.data;
   } catch (error) {
     console.error("Failed to fetch claims summary:", error);
@@ -154,6 +155,16 @@ export async function retryPayout(payoutId: string) {
     return response.data;
   } catch (error) {
     console.error("Failed to retry payout:", error);
+    return null;
+  }
+}
+
+export async function getRecentPayouts() {
+  try {
+    const response = await api.get("/payouts/summary");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch recent payouts:", error);
     return null;
   }
 }
