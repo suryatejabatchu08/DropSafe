@@ -190,8 +190,8 @@ class PayoutEngine:
 
             # Step 6: Notify worker via WhatsApp
             message = (
-                f"💸 *Payout Successful!*\n\n"
-                f"₹{payout_amount:.0f} has been sent to your UPI.\n"
+                f"💸 *Payout Initiated*\n\n"
+                f"₹{payout_amount:.0f} is being processed to your UPI.\n"
                 f"Reference: DROPSAFE_{claim_id[:8]}\n\n"
                 f"It may take a few minutes to reflect.\n"
                 f"Stay safe out there! 🛵\n\n"
