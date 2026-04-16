@@ -795,11 +795,14 @@ async def handle_status_check(worker: dict):
         rejected = sum(1 for c in claims if c.get("status") == "rejected")
 
         # Build response
+        premium_display = f"₹{premium:.0f}" if premium else "N/A"
+        coverage_display = f"₹{coverage_cap:.0f}" if coverage_cap else "N/A"
+
         status_msg = (
             f"✅ *Coverage Active*\n\n"
             f"Zone: {zone.get('dark_store_name', 'N/A')}\n"
-            f"Premium: ₹{premium:.0f}\n"
-            f"Coverage Cap: ₹{coverage_cap:.0f}\n\n"
+            f"Premium: {premium_display}\n"
+            f"Coverage Cap: {coverage_display}\n\n"
         )
 
         if claims:
