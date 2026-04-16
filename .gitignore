@@ -347,6 +347,7 @@ models/*.onnx
 backend/models/*.pkl
 backend/models/*.pkl.gz
 backend/models/model_metadata.json
+backend/models/xgboost_metadata.json
 
 # Data files
 /data/raw/
