@@ -229,6 +229,16 @@ export async function getFraudSummary() {
   }
 }
 
+export async function getUnitEconomics() {
+  try {
+    const response = await api.get("/analytics/unit-economics");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch unit economics:", error);
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Phase 3 — ML
 // ─────────────────────────────────────────────────────────────────────────────

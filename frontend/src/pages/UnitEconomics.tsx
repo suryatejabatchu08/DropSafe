@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { getUnitEconomics } from '../lib/api';
 
 interface UnitEconomicsData {
   per_worker: {
@@ -43,10 +44,9 @@ export default function UnitEconomics() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/analytics/unit-economics');
-        if (!response.ok) throw new Error('Failed to fetch unit economics');
-        const json = await response.json();
-        setData(json);
+        const data = await getUnitEconomics();
+        if (!data) throw new Error('Failed to fetch unit economics');
+        setData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
