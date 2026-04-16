@@ -241,6 +241,8 @@ async def get_predictive_analytics():
 
             if isinstance(weather_risk, Exception):
                 weather_risk = 1.0
+            elif not weather_risk:
+                weather_risk = 1.0
 
             risk_multiplier = float(zone.get("risk_multiplier", 1.0))
 
@@ -259,7 +261,7 @@ async def get_predictive_analytics():
             )
             n_policies = policies_resp.count or 0
             avg_coverage = (
-                sum(float(p.get("coverage_cap", 1280)) for p in (policies_resp.data or []))
+                sum(float(p.get("coverage_cap") or 1280) for p in (policies_resp.data or []))
                 / max(n_policies, 1)
             )
 
