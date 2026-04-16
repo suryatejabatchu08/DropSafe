@@ -4,6 +4,7 @@ import {
   getFraudAlerts,
   approveClaim,
   rejectClaim,
+  getFraudSummary,
 } from "../lib/api";
 import {
   formatINR,
@@ -13,6 +14,7 @@ import {
   anonymizeWorker,
 } from "../lib/utils";
 import { AlertTriangle, CheckCircle } from "lucide-react";
+import MLFraudPanel from "../components/MLFraudPanel";
 
 // Loading skeleton
 function SkeletonClaimCard() {
@@ -76,6 +78,7 @@ const STATUS_TABS: { label: string; value: StatusFilter }[] = [
 export default function Claims() {
   const [reviewQueue, setReviewQueue] = useState<ReviewClaim[]>([]);
   const [alerts, setAlerts] = useState<FraudAlert | null>(null);
+  const [fraudSummary, setFraudSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("review");
@@ -86,13 +89,15 @@ export default function Claims() {
 
   const fetchData = async () => {
     try {
-      const [queueRes, alertsRes] = await Promise.all([
+      const [queueRes, alertsRes, summaryRes] = await Promise.all([
         getReviewQueue(),
         getFraudAlerts(),
+        getFraudSummary(),
       ]);
 
       if (queueRes?.claims) setReviewQueue(queueRes.claims);
       if (alertsRes) setAlerts(alertsRes);
+      if (summaryRes) setFraudSummary(summaryRes);
     } catch (err) {
       console.error("Failed to fetch claims:", err);
     } finally {
@@ -178,6 +183,11 @@ export default function Claims() {
           </div>
         </div>
       )}
+
+      {/* ML Fraud Analysis Panel */}
+      <div className="mb-8">
+        <MLFraudPanel summary={fraudSummary} loading={loading} />
+      </div>
 
       {/* High Fraud Alerts */}
       {alerts && alerts.high_fraud_alerts.length > 0 && (

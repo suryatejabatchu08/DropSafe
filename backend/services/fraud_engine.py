@@ -1,6 +1,9 @@
 """
-DropSafe Fraud Detection Engine (Layer 1)
-ML-based Multi-Signal Anomaly Score (MSAS) with rule-based checks
+DropSafe Fraud Detection Engine — Layer 1 + Layer 2
+
+Layer 1: Rule-based Multi-Signal Anomaly Score (MSAS) — 7 deterministic checks
+Layer 2: Isolation Forest ML — learned anomaly patterns (40% weight)
+Combined: weighted average, capped at 1.0
 """
 
 from datetime import datetime, timedelta
@@ -16,7 +19,7 @@ class FraudEngine:
     """MSAS fraud detection engine with 6 rule-based checks."""
 
     @staticmethod
-    async def score_claim(claim_data: dict) -> Tuple[float, dict]:
+    async def score_claim(claim_data: dict) -> Tuple[float, dict]:  # type: ignore[override]
         """
         Score a claim for fraud using Multi-Signal Anomaly Score (MSAS).
 
@@ -169,14 +172,112 @@ class FraudEngine:
                 fraud_flags["checks_passed"] += 1
                 print(f"   ✅ Cluster Fraud Check PASSED: {cluster_check['reason']}")
 
-            # Cap at 1.0
+            # Cap Layer 1 at 1.0
             msas_score = min(msas_score, 1.0)
 
-            # Determine claim status based on fraud score (NORMAL THRESHOLDS)
-            if msas_score < 0.40:
+            # ── HARD REJECT: skip Layer 2 if already at maximum ──────────
+            if msas_score >= 1.00:
+                print(f"   🚫 HARD REJECT at Layer 1 (score=1.0) — skipping Layer 2")
+                fraud_flags["layer2_isolation_forest"] = {
+                    "score": None,
+                    "layer1_score": msas_score,
+                    "combined_score": 1.0,
+                    "model": "skipped_hard_reject",
+                }
+                print(f"   Final Combined Score: 1.00 | ❌ HARD REJECT\n")
+                return 1.00, fraud_flags
+
+            # ── LAYER 2: Isolation Forest ──────────────────────────────────
+            layer2_score: float = msas_score  # Default fallback = Layer 1 score
+            try:
+                from .isolation_forest_scorer import IsolationForestScorer
+
+                if IsolationForestScorer.is_loaded():
+                    # Fetch worker/zone/trigger records for feature building
+                    worker_id = claim_data.get("worker_id", "")
+                    zone_id = claim_data.get("zone_id", "")
+                    trigger_event_id = claim_data.get("trigger_event_id", "")
+
+                    # Fetch supporting records
+                    worker_resp = supabase.table("workers").select(
+                        "id, created_at, avg_hourly_income"
+                    ).eq("id", worker_id).execute()
+                    worker_rec = worker_resp.data[0] if worker_resp.data else {}
+
+                    zone_resp = supabase.table("zones").select(
+                        "id, risk_multiplier"
+                    ).eq("id", zone_id).execute()
+                    zone_rec = zone_resp.data[0] if zone_resp.data else {}
+
+                    trigger_resp = supabase.table("trigger_events").select(
+                        "id, severity, trigger_type"
+                    ).eq("id", trigger_event_id).execute()
+                    trigger_rec = trigger_resp.data[0] if trigger_resp.data else {
+                        "severity": claim_data.get("severity", 0.5)
+                    }
+
+                    # 30-day claim count for this worker
+                    thirty_ago = (datetime.now(IST) - timedelta(days=30))
+                    thirty_ago_str = thirty_ago.replace(tzinfo=None).isoformat()
+                    freq_resp = supabase.table("claims").select(
+                        "id", count="exact"
+                    ).eq("worker_id", worker_id).gte(
+                        "created_at", thirty_ago_str
+                    ).execute()
+                    worker_claim_count_30d = freq_resp.count or 0
+
+                    # Concurrent claims in same zone/hour
+                    now_ist = datetime.now(IST)
+                    hour_start = now_ist.replace(minute=0, second=0, microsecond=0)
+                    hour_start_str = hour_start.replace(tzinfo=None).isoformat()
+                    zone_hour_resp = supabase.table("claims").select(
+                        "id", count="exact"
+                    ).eq("zone_id", zone_id).gte(
+                        "created_at", hour_start_str
+                    ).execute()
+                    zone_claim_count_hour = zone_hour_resp.count or 0
+
+                    # Build claim dict for scorer
+                    claim_for_scorer = {
+                        "payout_amount": claim_data.get("payout_amount",
+                            claim_data.get("disrupted_hours", 2.0) * 80.0 * 0.80),
+                        "disrupted_hours": claim_data.get("disrupted_hours", 2.0),
+                        "created_at": datetime.now(IST).isoformat(),
+                    }
+
+                    layer2_score = await IsolationForestScorer.score(
+                        claim=claim_for_scorer,
+                        worker=worker_rec,
+                        trigger=trigger_rec,
+                        zone=zone_rec,
+                        layer1_score=msas_score,
+                        worker_claim_count_30d=worker_claim_count_30d,
+                        zone_claim_count_hour=zone_claim_count_hour,
+                        fallback_score=msas_score,  # fallback = Layer 1
+                    )
+                    print(f"   🤖 Layer 2 (IF): {layer2_score:.3f}")
+                else:
+                    print("   ⚠️ Layer 2 model not loaded — using Layer 1 only")
+
+            except Exception as l2_err:
+                print(f"   ⚠️ Layer 2 error: {l2_err} — falling back to Layer 1")
+
+            # ── COMBINED SCORE: 60% Layer 1 + 40% Layer 2 ─────────────────
+            combined_score = (msas_score * 0.60) + (layer2_score * 0.40)
+            combined_score = round(min(combined_score, 1.0), 3)
+
+            fraud_flags["layer2_isolation_forest"] = {
+                "score": round(layer2_score, 3),
+                "layer1_score": round(msas_score, 3),
+                "combined_score": combined_score,
+                "model": "IsolationForest_v1",
+            }
+
+            # Determine claim status based on COMBINED score
+            if combined_score < 0.40:
                 status = "auto_approved"
                 status_emoji = "✅"
-            elif msas_score < 0.80:
+            elif combined_score < 0.80:
                 status = "review"
                 status_emoji = "🔍"
             else:
@@ -184,13 +285,17 @@ class FraudEngine:
                 status_emoji = "❌"
 
             print(
-                f"\n   Final MSAS Score: {msas_score:.2f} | "
-                f"Passed: {fraud_flags['checks_passed']} | "
+                f"\n   Layer 1: {msas_score:.3f} | "
+                f"Layer 2: {layer2_score:.3f} | "
+                f"Combined: {combined_score:.3f}"
+            )
+            print(
+                f"   Passed: {fraud_flags['checks_passed']} | "
                 f"Failed: {fraud_flags['checks_failed']}"
             )
             print(f"   {status_emoji} CLAIM STATUS: {status.upper()}\n")
 
-            return round(msas_score, 2), fraud_flags
+            return combined_score, fraud_flags
 
         except Exception as e:
             print(f"[ERROR] FraudEngine.score_claim failed: {e}")

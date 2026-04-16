@@ -1,0 +1,22 @@
+{
+  "model_type": "XGBoost",
+  "trained_at": "2026-04-16T19:06:09.811466+05:30",
+  "samples": 500,
+  "synthetic_samples": 500,
+  "real_samples": 0,
+  "features": [
+    "zone_risk",
+    "rainfall_7d_mm",
+    "temp_avg_c",
+    "aqi_avg",
+    "season_index",
+    "claim_rate"
+  ],
+  "target_range": [
+    -0.25,
+    0.25
+  ],
+  "n_estimators": 100,
+  "max_depth": 4,
+  "learning_rate": 0.1
+}

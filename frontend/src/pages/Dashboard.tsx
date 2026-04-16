@@ -11,9 +11,11 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { getDashboardStats, getDailyClaimsSummary, getDailyPayoutsSummary } from "../lib/api";
+import { getDashboardStats, getDailyClaimsSummary, getDailyPayoutsSummary, getLossRatio, getPredictiveAnalytics } from "../lib/api";
 import StatCard from "../components/StatCard";
 import TriggerFeed from "../components/TriggerFeed";
+import LossRatioWidget from "../components/LossRatioWidget";
+import PredictivePanel from "../components/PredictivePanel";
 
 interface Stats {
   active_policies: number;
@@ -36,6 +38,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [claimsData, setClaimsData] = useState<any[]>([]);
   const [payoutsData, setPayoutsData] = useState<any[]>([]);
+  const [lossRatioData, setLossRatioData] = useState<any>(null);
+  const [predictiveData, setPredictiveData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -47,15 +51,19 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, claimsRes, payoutsRes] = await Promise.all([
+      const [statsRes, claimsRes, payoutsRes, lossRes, predictiveRes] = await Promise.all([
         getDashboardStats(),
         getDailyClaimsSummary(),
         getDailyPayoutsSummary(),
+        getLossRatio("current_week"),
+        getPredictiveAnalytics(),
       ]);
 
       if (statsRes) setStats(statsRes);
       if (claimsRes) setClaimsData(claimsRes);
       if (payoutsRes) setPayoutsData(payoutsRes);
+      if (lossRes) setLossRatioData(lossRes);
+      if (predictiveRes) setPredictiveData(predictiveRes);
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Failed to fetch data:", err);
@@ -75,10 +83,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Row — using StatCard component */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Stats Row — 4 standard cards + Loss Ratio */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {loading ? (
           <>
+            <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -109,6 +118,10 @@ export default function Dashboard() {
               value={stats?.fraud_alerts ?? 0}
               icon="⚠️"
               color="yellow"
+            />
+            <LossRatioWidget
+              lossRatio={lossRatioData?.loss_ratio ?? null}
+              loading={loading}
             />
           </>
         )}
@@ -200,8 +213,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Live Trigger Feed — using TriggerFeed component */}
+      {/* Live Trigger Feed */}
       <TriggerFeed />
+
+      {/* Predictive Analytics Panel */}
+      <div className="mt-6">
+        <PredictivePanel zones={predictiveData} loading={loading} />
+      </div>
 
       {/* Refresh indicator */}
       <div className="text-center text-slate-500 text-sm mt-4">

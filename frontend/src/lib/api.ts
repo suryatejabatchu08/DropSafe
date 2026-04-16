@@ -169,4 +169,92 @@ export async function getRecentPayouts() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Worker Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getWorkerDashboard(workerId: string) {
+  try {
+    const response = await api.get(`/worker/${workerId}/dashboard`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch worker dashboard:", error);
+    return null;
+  }
+}
+
+export async function getWorkerHistory(workerId: string, page = 1, limit = 10) {
+  try {
+    const response = await api.get(`/worker/${workerId}/history`, {
+      params: { page, limit },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch worker history:", error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Analytics
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getLossRatio(period = "current_week") {
+  try {
+    const response = await api.get("/analytics/loss-ratio", { params: { period } });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch loss ratio:", error);
+    return null;
+  }
+}
+
+export async function getPredictiveAnalytics() {
+  try {
+    const response = await api.get("/analytics/predictive");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch predictive analytics:", error);
+    return [];
+  }
+}
+
+export async function getFraudSummary() {
+  try {
+    const response = await api.get("/analytics/fraud-summary");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch fraud summary:", error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — ML
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getMLModelStatus() {
+  try {
+    const response = await api.get("/ml/model/status");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch ML model status:", error);
+    return null;
+  }
+}
+
+export async function triggerMLRetrain() {
+  try {
+    const response = await api.post("/ml/train");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to trigger ML retrain:", error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Zones (for demo page)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default api;

@@ -329,7 +329,7 @@ $RECYCLE.BIN/
 # SECTION 7: MACHINE LEARNING & DATA FILES
 # ============================================================================
 
-# Model files
+# Model files (global)
 *.pkl
 *.pickle
 *.joblib
@@ -341,6 +341,12 @@ models/trained/
 models/*.pt
 models/*.pth
 models/*.onnx
+
+# Phase 3 — DropSafe Isolation Forest runtime artifacts
+# Keep .gitkeep so the directory is tracked; ignore generated files
+backend/models/*.pkl
+backend/models/*.pkl.gz
+backend/models/model_metadata.json
 
 # Data files
 /data/raw/
@@ -429,6 +435,13 @@ API_ENDPOINTS.md
 LOCAL_SETUP_GUIDE.md
 DEPLOYMENT_GUIDE.md
 WORKER_SETUP.md
+API_INTEGRATION_VERIFICATION.md
+COMPLETE_IMPLEMENTATION_CHECKLIST.md
+DEMO_DEBUGGING_GUIDE.md
+DEMO_NOW_REAL.md
+EVALUATION_FIXES_SUMMARY.md
+IMPLEMENTATION_CHANGES.md
+PHASE_3_IMPLEMENTATION_CHECKLIST.md
 .claude/
 .claude/memory/
 .claude/plans/

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, Response
 from datetime import datetime, timedelta
 from database import get_supabase
 import pytz
+import os
 from utils.whatsapp_helpers import (
     hash_phone,
     send_whatsapp_message,
@@ -225,7 +226,7 @@ async def handle_onboarding(
             )
 
         # Complete onboarding
-        supabase.table("workers").update(
+        result = supabase.table("workers").update(
             {
                 "upi_id_encrypted": upi_id,  # In production, encrypt this!
                 "declared_weekly_hours": 40,  # Default
@@ -236,19 +237,37 @@ async def handle_onboarding(
             }
         ).eq("phone_hash", phone_hash).execute()
 
+        # Get the worker ID for the dashboard link
+        worker_id = None
+        if result.data:
+            worker_id = result.data[0].get("id")
+        else:
+            # Fetch the worker record to get the ID
+            w_resp = supabase.table("workers").select("id").eq("phone_hash", phone_hash).execute()
+            if w_resp.data:
+                worker_id = w_resp.data[0].get("id")
+
         print(f"[ONBOARDING] Step 5: Onboarding complete for {phone_hash[:8]}...")
 
-        return (
+        # Build dashboard URL
+        base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        dashboard_url = f"{base_url}/worker/{worker_id}" if worker_id else f"{base_url}/worker"
+
+        enrollment_msg = (
             "🎉 You're all set!\n\n"
             "Your DropSafe account is now active.\n\n"
             "📅 Every Monday at 7 AM, I'll ask if you want this week's income coverage.\n"
             "💰 Premium starts at just ₹100-150/week\n"
             "🛡️ You'll be protected from rain, AQI, and other disruptions\n\n"
+            f"📊 View your personal dashboard:\n"
+            f"{dashboard_url}\n\n"
+            "Bookmark this link to check your coverage and payouts anytime! 📱\n\n"
             "💬 Quick commands:\n"
             "- Reply STATUS to check your coverage\n"
             "- Reply HELP for more info\n\n"
             "Stay safe out there! 🛵"
         )
+        return enrollment_msg
 
     return "Something went wrong. Please try again."
 

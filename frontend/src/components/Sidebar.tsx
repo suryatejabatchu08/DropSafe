@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { BarChart3, AlertCircle, CreditCard, Map } from "lucide-react";
+import { BarChart3, AlertCircle, CreditCard, Map, Zap } from "lucide-react";
 
 export default function Sidebar() {
   const location = useLocation();
@@ -62,6 +62,33 @@ export default function Sidebar() {
         >
           <CreditCard size={20} />
           <span>Payouts</span>
+        </Link>
+
+        {/* Divider */}
+        <div className="my-2 border-t border-slate-700" />
+
+        <Link
+          to="/economics"
+          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+            isActive("/economics")
+              ? "bg-yellow-500 text-slate-900 font-semibold"
+              : "text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          <BarChart3 size={20} />
+          <span>Unit Economics</span>
+        </Link>
+
+        <Link
+          to="/demo"
+          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+            isActive("/demo")
+              ? "bg-yellow-400 text-slate-900 font-bold"
+              : "text-yellow-400 hover:bg-yellow-400/10 font-semibold"
+          }`}
+        >
+          <Zap size={20} />
+          <span>⚡ Live Demo</span>
         </Link>
       </nav>
 
