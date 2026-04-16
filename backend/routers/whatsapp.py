@@ -779,7 +779,13 @@ async def handle_status_check(worker: dict):
         policy = policy_response.data[0]
         zone = policy.get("zones", {})
         premium = policy.get("premium_paid", 0)
-        coverage_cap = policy.get("coverage_cap", 0)
+        coverage_cap = policy.get("coverage_cap")
+
+        # Recalculate coverage_cap if missing (old policies)
+        if not coverage_cap:
+            avg_income = float(worker.get("avg_hourly_income", 80.0))
+            declared_hours = worker.get("declared_weekly_hours", 40)
+            coverage_cap = calculate_coverage_cap(1.0, declared_hours, avg_income)
 
         # Get claims this week
         claims_response = (
