@@ -606,6 +606,131 @@ payouts (
 
 ---
 
+## 📊 Pitch Deck
+
+View the full pitch deck here: **[DropSafe Pitch Deck](https://drive.google.com/file/d/1zbbuORiZIKzlPC52TNnNX38B32LkLMrb/view?usp=sharing)**
+
+---
+
+## 🛠️ Local Setup
+
+### Prerequisites
+- **Node.js** 18+ (for frontend)
+- **Python** 3.10+ (for backend)
+- **PostgreSQL** (via Supabase)
+- **Redis** (for session/trigger state)
+- **Git**
+
+### Backend Setup
+
+```bash
+# Clone repository
+git clone https://github.com/suryatejabatchu08/DropSafe.git
+cd DropSafe/backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials, API keys, etc.
+
+# Run database migrations (if needed)
+# python scripts/migrate.py
+
+# Start backend server
+uvicorn main:app --reload --port 8000
+```
+
+**Backend runs on:** `http://localhost:8000`
+
+### Frontend Setup
+
+```bash
+cd DropSafe/frontend
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Set VITE_API_URL=http://localhost:8000
+
+# Start development server
+npm run dev
+```
+
+**Frontend runs on:** `http://localhost:5173`
+
+### Redis Setup (Local)
+
+```bash
+# Using Docker (recommended)
+docker run -d -p 6379:6379 redis:alpine
+
+# Or install Redis locally and start the service
+redis-server
+```
+
+### Environment Variables
+
+**Backend (.env):**
+```
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+OPENWEATHERMAP_API_KEY=your_api_key
+IQAIR_API_KEY=your_api_key
+RAZORPAY_KEY_ID=your_key
+RAZORPAY_KEY_SECRET=your_secret
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_PHONE_NUMBER=your_number
+REDIS_URL=redis://localhost:6379
+```
+
+**Frontend (.env):**
+```
+VITE_API_URL=http://localhost:8000
+```
+
+### Running the Full Stack
+
+```bash
+# Terminal 1 - Backend
+cd backend && source venv/bin/activate && uvicorn main:app --reload --port 8000
+
+# Terminal 2 - Frontend
+cd frontend && npm run dev
+
+# Terminal 3 - Redis (if using Docker, this is optional)
+docker run -d -p 6379:6379 redis:alpine
+```
+
+Then open **http://localhost:5173** in your browser.
+
+---
+
+## ⚠️ Known Limitations
+
+### Worker Dashboard on Deployed Site
+The **Worker Dashboard** is fully functional in local development but currently unavailable on the deployed site. This is due to:
+- WhatsApp OAuth integration requiring production-level credentials
+- Worker session management requiring backend environment configuration
+
+**Workaround:** Run locally to test the complete worker flow via WhatsApp bot simulation.
+
+**Local testing:**
+```bash
+# Send a message to the WhatsApp bot (Twilio sandbox in dev mode)
+# The worker dashboard is accessible at: http://localhost:5173/worker/:workerId
+```
+
+---
+
 ## Team
 
 | Name | Role |
